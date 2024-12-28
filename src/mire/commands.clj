@@ -15,46 +15,47 @@
   "Get a description of the surrounding environs and its contents."
   []
   (str (:desc @player/*current-room*)
-       "\nExits: " (keys @(:exits @player/*current-room*)) "\n"
-       (str/join "\n" (map #(str "There is " % " here.\n")
-                           @(:items @player/*current-room*)))))
+       "\nExits: " (keys @(:exits @player/*current-room*))
+       (str/join (map #(str "\nThere is " % " here.") @(:items @player/*current-room*)))
+       (str/join (map #(str "\n" % ) (disj @(:inhabitants @player/*current-room*) player/*name*))) "\n"))
+
 
 (defn move
   "\"♬ We gotta get out of this place... ♪\" Give a direction."
   [direction]
   (dosync
-   (let [target-name ((:exits @player/*current-room*) (keyword direction))
-         target (@rooms/rooms target-name)]
-     (if target
-       (do
-         (move-between-refs player/*name*
-                            (:inhabitants @player/*current-room*)
-                            (:inhabitants target))
-         (ref-set player/*current-room* target)
-         (look))
-       "You can't go that way."))))
+    (let [target-name ((:exits @player/*current-room*) (keyword direction))
+          target (@rooms/rooms target-name)]
+      (if target
+        (do
+          (move-between-refs player/*name*
+                             (:inhabitants @player/*current-room*)
+                             (:inhabitants target))
+          (ref-set player/*current-room* target)
+          (look))
+        "You can't go that way."))))
 
 (defn grab
   "Pick something up."
   [thing]
   (dosync
-   (if (rooms/room-contains? @player/*current-room* thing)
-     (do (move-between-refs (keyword thing)
-                            (:items @player/*current-room*)
-                            player/*inventory*)
-         (str "You picked up the " thing "."))
-     (str "There isn't any " thing " here."))))
+    (if (rooms/room-contains? @player/*current-room* thing)
+      (do (move-between-refs (keyword thing)
+                             (:items @player/*current-room*)
+                             player/*inventory*)
+          (str "You picked up the " thing "."))
+      (str "There isn't any " thing " here."))))
 
 (defn discard
   "Put something down that you're carrying."
   [thing]
   (dosync
-   (if (player/carrying? thing)
-     (do (move-between-refs (keyword thing)
-                            player/*inventory*
-                            (:items @player/*current-room*))
-         (str "You dropped the " thing "."))
-     (str "You're not carrying a " thing "."))))
+    (if (player/carrying? thing)
+      (do (move-between-refs (keyword thing)
+                             player/*inventory*
+                             (:items @player/*current-room*))
+          (str "You dropped the " thing "."))
+      (str "You're not carrying a " thing "."))))
 
 (defn inventory
   "See what you've got."
@@ -81,7 +82,18 @@
       (binding [*out* (player/streams inhabitant)]
         (println message)
         (println player/prompt)))
-    (str "You said " message)))
+    (str "You said " message))
+  )
+(defn whisper
+  "Whisper something to anyone in the room."
+  [name & words]
+  (let [message (str/join " " words)]
+    (let [inhabitant (get @(:inhabitants @player/*current-room*) name)]
+      (binding [*out* (player/streams inhabitant)]
+        (println message)
+        (print player/prompt)))
+    (str "You said " message))
+  )
 
 (defn help
   "Show available commands and what they do."
@@ -90,6 +102,11 @@
                       (dissoc (ns-publics 'mire.commands)
                               'execute 'commands))))
 
+(defn lobby
+  "Show players in the labyrinth"
+  []
+  (str/join "\n" (map first @player/streams)))
+
 ;; Command data
 
 (def commands {"move" move,
@@ -97,12 +114,14 @@
                "south" (fn [] (move :south)),
                "east" (fn [] (move :east)),
                "west" (fn [] (move :west)),
+               "lobby" lobby
                "grab" grab
                "discard" discard
                "inventory" inventory
                "detect" detect
                "look" look
                "say" say
+               "whisper" whisper
                "help" help})
 
 ;; Command handling
