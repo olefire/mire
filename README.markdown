@@ -29,5 +29,8 @@ Clojure](https://www.pluralsight.com/courses/functional-programming-clojure).
 A [blog post](https://technomancy.us/136) steps through the codebase
 and shows how to make minor updates for a more recent version of Clojure.
 
-Copyright © 2009-2021 Phil Hagelberg
-Licensed under the same terms as Clojure.
+## Новый функционал
+
+- Модификация команды look - вывод игроков, находящихся в комнате
+- Новая команда whisper, передающаяя сообщение только одному игроку в комнате
+- Вывод информации о всех игроках, находящихся в лобби (команда lobby)
